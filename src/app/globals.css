@@ -10,13 +10,13 @@
     --card-foreground: 348 91% 25%;
     --popover: 346 67% 96%;
     --popover-foreground: 348 91% 25%;
-    --primary: 341 100% 63%; /* Vibrant red-pink */
+    --primary: 341 100% 63%; /* Vibrant red-pink from logo */
     --primary-foreground: 341 100% 98%;
-    --secondary: 16 84% 57%; /* Orange-red for secondary */
-    --secondary-foreground: 16 100% 98%;
+    --secondary: 28 100% 58%; /* Orange from logo */
+    --secondary-foreground: 28 100% 98%;
     --muted: 346 33% 91%;
     --muted-foreground: 345 10% 45%;
-    --accent: 279 63% 42%; /* Deep violet for accent */
+    --accent: 279 98% 65%; /* Violet from logo */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
@@ -45,13 +45,13 @@
     --card-foreground: 346 40% 90%;
     --popover: 0 0% 5%;
     --popover-foreground: 346 40% 90%;
-    --primary: 341 100% 63%; /* Vibrant red-pink */
+    --primary: 341 100% 63%; /* Vibrant red-pink from logo */
     --primary-foreground: 341 100% 98%;
-    --secondary: 16 84% 57%; /* Orange-red for secondary */
-    --secondary-foreground: 16 100% 98%;
+    --secondary: 28 100% 58%; /* Orange from logo */
+    --secondary-foreground: 28 100% 98%;
     --muted: 348 15% 20%;
     --muted-foreground: 346 10% 60%;
-    --accent: 279 63% 42%; /* Deep violet for accent */
+    --accent: 279 98% 65%; /* Violet from logo */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
