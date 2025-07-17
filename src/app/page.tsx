@@ -10,6 +10,8 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
+  SidebarTrigger,
+  SidebarFooter,
 } from '@/components/ui/sidebar';
 import { ImagePulseLogo } from '@/components/ImagePulseLogo';
 import { Header } from '@/components/Header';
@@ -23,6 +25,7 @@ import {
   Download,
   X,
   Sparkles,
+  PanelLeft,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -127,8 +130,9 @@ export default function HomePage() {
   return (
     <SidebarProvider>
       <Sidebar>
-        <SidebarHeader>
+        <SidebarHeader className="flex items-center justify-between">
           <ImagePulseLogo />
+           <SidebarTrigger className="hidden md:flex" />
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
@@ -152,6 +156,16 @@ export default function HomePage() {
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
+        <SidebarFooter>
+            <SidebarMenu>
+                <SidebarMenuItem>
+                    <SidebarMenuButton>
+                        <PanelLeft className="rotate-180" />
+                        <span className="group-data-[collapsible=icon]:hidden">Collapse</span>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            </SidebarMenu>
+        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <div className="flex h-svh flex-col">

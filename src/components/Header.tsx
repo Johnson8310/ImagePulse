@@ -11,15 +11,18 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { LifeBuoy, LogOut, Settings, User } from 'lucide-react';
 import Image from 'next/image';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center justify-end border-b bg-card/80 px-4 backdrop-blur-sm md:px-6">
+    <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-card/80 px-4 backdrop-blur-sm md:px-6">
+      <SidebarTrigger className="md:hidden" />
+      <div />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-10 w-10 rounded-full">
             <Avatar className="h-10 w-10 border-2 border-primary/50">
-              <Image src="https://placehold.co/100x100.png" width={40} height={40} alt="@user" />
+              <Image src="https://placehold.co/100x100.png" width={40} height={40} alt="@user" data-ai-hint="profile avatar" />
               <AvatarFallback>U</AvatarFallback>
             </Avatar>
           </Button>
