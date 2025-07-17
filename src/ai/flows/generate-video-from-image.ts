@@ -10,6 +10,7 @@
 import {ai} from '@/ai/genkit';
 import { createVideo } from '@/services/video-service';
 import {z} from 'genkit';
+import { db } from '@/lib/firebase/server';
 
 const GenerateVideoFromImageInputSchema = z.object({
   photoDataUri: z
@@ -57,13 +58,18 @@ const generateVideoFromImageFlow = ai.defineFlow(
       throw new Error('Media generation failed or returned no URL.');
     }
     
-    // Save the generated video to Firestore
-    await createVideo({
-      userId: input.userId,
-      videoUri: media.url,
-      description: input.description,
-      createdAt: new Date(),
-    });
+    // Save the generated video to Firestore, but only if it's initialized
+    if ((db as any).isInitialized) {
+        await createVideo({
+          userId: input.userId,
+          videoUri: media.url,
+          description: input.description,
+          createdAt: new Date(),
+        });
+    } else {
+        console.warn('Firestore is not initialized. Skipping video save. Please check your .env credentials.');
+    }
+
 
     // Since we are getting an image back, we'll return it as the "video".
     // On the frontend, we have a fallback to display a placeholder MP4 if the data URI isn't a video.
