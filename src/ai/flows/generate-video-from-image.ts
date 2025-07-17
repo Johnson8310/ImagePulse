@@ -8,9 +8,8 @@
  */
 
 import {ai} from '@/ai/genkit';
-import { createVideo } from '@/services/video-service';
+import { createVideo, isFirestoreAvailable } from '@/services/video-service';
 import {z} from 'genkit';
-import { db } from '@/lib/firebase/server';
 
 const GenerateVideoFromImageInputSchema = z.object({
   photoDataUri: z
@@ -59,13 +58,19 @@ const generateVideoFromImageFlow = ai.defineFlow(
     }
     
     // Save the generated video to Firestore, but only if it's initialized
-    if ((db as any).isInitialized) {
-        await createVideo({
-          userId: input.userId,
-          videoUri: media.url,
-          description: input.description,
-          createdAt: new Date(),
-        });
+    const firestoreReady = await isFirestoreAvailable();
+    if (firestoreReady) {
+        try {
+            await createVideo({
+              userId: input.userId,
+              videoUri: media.url,
+              description: input.description,
+              createdAt: new Date(),
+            });
+        } catch (error) {
+            console.error("Failed to save video to Firestore:", error);
+            // Non-blocking error, we can still return the video to the user.
+        }
     } else {
         console.warn('Firestore is not initialized. Skipping video save. Please check your .env credentials.');
     }

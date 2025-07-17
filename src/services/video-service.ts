@@ -3,13 +3,19 @@
 import { db } from '@/lib/firebase/server';
 import type { Video } from '@/models/video';
 
-const videosCollection = db.collection('videos');
+function getVideosCollection() {
+    if (!(db as any).isInitialized) {
+        throw new Error('Firestore is not initialized.');
+    }
+    return db.collection('videos');
+}
 
 export async function isFirestoreAvailable(): Promise<boolean> {
   return (db as any).isInitialized;
 }
 
 export async function createVideo(video: Omit<Video, 'id'>): Promise<Video> {
+  const videosCollection = getVideosCollection();
   const docRef = await videosCollection.add({
     ...video,
     createdAt: new Date(), // Ensure server-side timestamp
@@ -18,6 +24,7 @@ export async function createVideo(video: Omit<Video, 'id'>): Promise<Video> {
 }
 
 export async function getVideosForUser(userId: string): Promise<Video[]> {
+  const videosCollection = getVideosCollection();
   const snapshot = await videosCollection
     .where('userId', '==', userId)
     .orderBy('createdAt', 'desc')
