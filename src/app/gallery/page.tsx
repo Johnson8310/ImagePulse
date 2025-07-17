@@ -27,7 +27,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { getVideosForUser } from '@/services/video-service';
+import { getVideosForUser, isFirestoreAvailable } from '@/services/video-service';
 import type { Video } from '@/models/video';
 
 export default function GalleryPage() {
@@ -35,6 +35,7 @@ export default function GalleryPage() {
   const { user, loading: authLoading } = useAuth();
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
+  const [firestoreInitialized, setFirestoreInitialized] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -44,11 +45,18 @@ export default function GalleryPage() {
       return;
     }
 
-    const fetchVideos = async () => {
+    const checkFirestoreAndFetchVideos = async () => {
       try {
         setLoading(true);
-        const userVideos = await getVideosForUser(user.uid);
-        setVideos(userVideos);
+        const isAvailable = await isFirestoreAvailable();
+        setFirestoreInitialized(isAvailable);
+
+        if (isAvailable) {
+          const userVideos = await getVideosForUser(user.uid);
+          setVideos(userVideos);
+        } else {
+            console.warn("Firestore is not initialized. Gallery will be empty.")
+        }
       } catch (error) {
         console.error('Failed to fetch videos:', error);
       } finally {
@@ -56,7 +64,7 @@ export default function GalleryPage() {
       }
     };
 
-    fetchVideos();
+    checkFirestoreAndFetchVideos();
   }, [user, authLoading]);
 
   return (
@@ -132,7 +140,7 @@ export default function GalleryPage() {
                  <div className="flex justify-center items-center py-20">
                     <Loader className="h-12 w-12 animate-spin text-primary" />
                  </div>
-              ) : videos.length > 0 ? (
+              ) : videos.length > 0 && firestoreInitialized ? (
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {videos.map((video) => (
                     <Card key={video.id} className="overflow-hidden shadow-lg group">
@@ -156,9 +164,16 @@ export default function GalleryPage() {
                   <h2 className="mt-6 text-xl font-semibold">
                     Your gallery is empty
                   </h2>
-                  <p className="mt-2 text-muted-foreground">
-                    Create a video to see it here.
-                  </p>
+                   {!firestoreInitialized && (
+                     <p className="mt-2 text-muted-foreground max-w-md">
+                        Your gallery feature is not available. Please ensure your Firebase server credentials are correctly configured in the `.env` file to see your saved videos.
+                     </p>
+                   )}
+                   {firestoreInitialized && (
+                     <p className="mt-2 text-muted-foreground">
+                       Create a video to see it here.
+                     </p>
+                   )}
                   <Link href="/" className="mt-6">
                     <Button>Generate Your First Video</Button>
                   </Link>

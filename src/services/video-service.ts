@@ -5,6 +5,10 @@ import type { Video } from '@/models/video';
 
 const videosCollection = db.collection('videos');
 
+export async function isFirestoreAvailable(): Promise<boolean> {
+  return (db as any).isInitialized;
+}
+
 export async function createVideo(video: Omit<Video, 'id'>): Promise<Video> {
   const docRef = await videosCollection.add({
     ...video,

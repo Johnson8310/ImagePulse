@@ -1,4 +1,3 @@
-'use server';
 import * as admin from 'firebase-admin';
 import '@/lib/firebase/init'; // Ensure env vars are loaded
 
