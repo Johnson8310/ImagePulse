@@ -8,6 +8,7 @@
  */
 
 import {ai} from '@/ai/genkit';
+import { createVideo } from '@/services/video-service';
 import {z} from 'genkit';
 
 const GenerateVideoFromImageInputSchema = z.object({
@@ -17,6 +18,7 @@ const GenerateVideoFromImageInputSchema = z.object({
       "A photo to animate, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
   description: z.string().describe('A text description of the desired animation.'),
+  userId: z.string().describe('The ID of the user creating the video.'),
 });
 export type GenerateVideoFromImageInput = z.infer<typeof GenerateVideoFromImageInputSchema>;
 
@@ -54,6 +56,14 @@ const generateVideoFromImageFlow = ai.defineFlow(
     if (!media?.url) {
       throw new Error('Media generation failed or returned no URL.');
     }
+    
+    // Save the generated video to Firestore
+    await createVideo({
+      userId: input.userId,
+      videoUri: media.url,
+      description: input.description,
+      createdAt: new Date(),
+    });
 
     // Since we are getting an image back, we'll return it as the "video".
     // On the frontend, we have a fallback to display a placeholder MP4 if the data URI isn't a video.

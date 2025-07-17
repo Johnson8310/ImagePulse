@@ -45,6 +45,9 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
+
 
 type AppState = 'idle' | 'describing' | 'generating' | 'finished';
 
@@ -57,8 +60,20 @@ export default function HomePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const pathname = usePathname();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+
 
   const handleFileSelect = () => {
+    if (!user && !authLoading) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please log in to create a video.',
+        variant: 'destructive',
+      });
+      router.push('/login');
+      return;
+    }
     fileInputRef.current?.click();
   };
 
@@ -85,7 +100,7 @@ export default function HomePage() {
   };
 
   const handleGenerationStart = async () => {
-    if (!imageUri) return;
+    if (!imageUri || !user) return;
     setAppState('generating');
 
     const interval = setInterval(() => {
@@ -99,10 +114,14 @@ export default function HomePage() {
     }, 200);
 
     try {
-      const result = await generateVideoFromImage({ photoDataUri: imageUri, description });
+      const result = await generateVideoFromImage({ 
+        photoDataUri: imageUri, 
+        description,
+        userId: user.uid
+      });
       clearInterval(interval);
       setProgress(100);
-      if (result.videoDataUri && result.videoDataUri.startsWith('data:video')) {
+      if (result.videoDataUri && (result.videoDataUri.startsWith('data:video') || result.videoDataUri.startsWith('data:image'))) {
         setVideoUri(result.videoDataUri);
         setAppState('finished');
       } else {
@@ -143,7 +162,9 @@ export default function HomePage() {
     if (!videoUri) return;
     const link = document.createElement('a');
     link.href = videoUri;
-    link.download = 'imagepulse-video.mp4';
+    // The placeholder is an image, so we'll handle both cases.
+    const extension = videoUri.includes('data:video/mp4') ? 'mp4' : 'png';
+    link.download = `imagepulse-video.${extension}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

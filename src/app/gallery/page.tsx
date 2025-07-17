@@ -21,17 +21,42 @@ import {
   GalleryHorizontal,
   Settings,
   PanelLeft,
+  Loader,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { getVideosForUser, Video } from '@/services/video-service';
 
 export default function GalleryPage() {
   const pathname = usePathname();
-  const placeholderVideo =
-    'data:video/mp4;base64,AAAAHGZ0eXBNNFYgAAACAGlzb21pc28yYXZjMQAAAAhmcmVlAAAAG21kYXQAAAGzABAHAAABthBgQG//+v34A';
+  const { user, loading: authLoading } = useAuth();
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Create an array of 6 placeholders
-  const galleryItems = Array(6).fill(placeholderVideo);
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      // Redirect to login or show message if not authenticated
+      setLoading(false);
+      return;
+    }
+
+    const fetchVideos = async () => {
+      try {
+        setLoading(true);
+        const userVideos = await getVideosForUser(user.uid);
+        setVideos(userVideos);
+      } catch (error) {
+        console.error('Failed to fetch videos:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVideos();
+  }, [user, authLoading]);
 
   return (
     <SidebarProvider>
@@ -102,17 +127,24 @@ export default function GalleryPage() {
                 </Link>
               </div>
 
-              {galleryItems.length > 0 ? (
+              {loading || authLoading ? (
+                 <div className="flex justify-center items-center py-20">
+                    <Loader className="h-12 w-12 animate-spin text-primary" />
+                 </div>
+              ) : videos.length > 0 ? (
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {galleryItems.map((videoUri, index) => (
-                    <Card key={index} className="overflow-hidden shadow-lg">
-                      <CardContent className="p-0">
+                  {videos.map((video) => (
+                    <Card key={video.id} className="overflow-hidden shadow-lg group">
+                      <CardContent className="p-0 relative">
                         <video
-                          src={videoUri}
+                          src={video.videoUri}
                           controls
                           loop
                           className="aspect-video w-full"
                         />
+                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <p className="text-white text-sm truncate">{video.description}</p>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
