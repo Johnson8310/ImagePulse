@@ -15,6 +15,7 @@ const GenerateVideoFromImageInputSchema = z.object({
     .string()
     .describe(
       'A photo to animate, as a data URI that must include a MIME type and use Base64 encoding. Expected format: \'data:<mimetype>;base64,<encoded_data>\'.'    ),
+  description: z.string().describe('A text description of the desired animation.'),
 });
 export type GenerateVideoFromImageInput = z.infer<typeof GenerateVideoFromImageInputSchema>;
 
@@ -33,9 +34,10 @@ const generateVideoFromImagePrompt = ai.definePrompt({
   output: {schema: GenerateVideoFromImageOutputSchema},
   prompt: `You are a creative AI that generates short, subtly animated video clips from static images.
 
-  Given the following image, create a short video clip with subtle animation effects. Return the video as a data URI.
+  Given the following image and description, create a short video clip with subtle animation effects. Return the video as a data URI.
 
   Image: {{media url=photoDataUri}}
+  Description: {{{description}}}
 
   Ensure the video maintains the core essence of the original image while adding gentle motion to make it more engaging.
   The video should not be longer than 10 seconds.

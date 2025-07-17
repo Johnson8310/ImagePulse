@@ -32,13 +32,24 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { generateVideoFromImage } from '@/ai/flows/generate-video-from-image';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
-type AppState = 'idle' | 'generating' | 'finished';
+type AppState = 'idle' | 'describing' | 'generating' | 'finished';
 
 export default function HomePage() {
   const [appState, setAppState] = useState<AppState>('idle');
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [videoUri, setVideoUri] = useState<string | null>(null);
+  const [description, setDescription] = useState('');
   const [progress, setProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -60,58 +71,65 @@ export default function HomePage() {
       }
 
       const reader = new FileReader();
-      reader.onload = async (e) => {
+      reader.onload = (e) => {
         const dataUri = e.target?.result as string;
         setImageUri(dataUri);
-        setAppState('generating');
-        
-        const interval = setInterval(() => {
-          setProgress((prev) => {
-            if (prev >= 95) {
-              clearInterval(interval);
-              return prev;
-            }
-            return prev + 5;
-          });
-        }, 200);
-
-        try {
-          const result = await generateVideoFromImage({ photoDataUri: dataUri });
-          clearInterval(interval);
-          setProgress(100);
-          if (result.videoDataUri && result.videoDataUri.startsWith('data:video')) {
-            setVideoUri(result.videoDataUri);
-            setAppState('finished');
-          } else {
-            // A tiny, valid mp4 file as a base64 string
-            const fallbackVideo = "data:video/mp4;base64,AAAAHGZ0eXBNNFYgAAACAGlzb21pc28yYXZjMQAAAAhmcmVlAAAAG21kYXQAAAGzABAHAAABthBgQG//+v34A";
-            setVideoUri(fallbackVideo);
-            setAppState('finished');
-            toast({
-              title: "Using Placeholder Video",
-              description: "The AI model couldn't generate a video, so we're showing a placeholder.",
-            });
-          }
-        } catch (error) {
-          console.error('Video generation failed:', error);
-          clearInterval(interval);
-          toast({
-            variant: 'destructive',
-            title: 'Generation Failed',
-            description: 'Something went wrong while creating your video. Please try again.',
-          });
-          handleReset();
-        }
+        setAppState('describing');
       };
       reader.readAsDataURL(file);
     }
   };
+
+  const handleGenerationStart = async () => {
+    if (!imageUri) return;
+    setAppState('generating');
+
+    const interval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 95) {
+          clearInterval(interval);
+          return prev;
+        }
+        return prev + 5;
+      });
+    }, 200);
+
+    try {
+      const result = await generateVideoFromImage({ photoDataUri: imageUri, description });
+      clearInterval(interval);
+      setProgress(100);
+      if (result.videoDataUri && result.videoDataUri.startsWith('data:video')) {
+        setVideoUri(result.videoDataUri);
+        setAppState('finished');
+      } else {
+        // A tiny, valid mp4 file as a base64 string
+        const fallbackVideo = "data:video/mp4;base64,AAAAHGZ0eXBNNFYgAAACAGlzb21pc28yYXZjMQAAAAhmcmVlAAAAG21kYXQAAAGzABAHAAABthBgQG//+v34A";
+        setVideoUri(fallbackVideo);
+        setAppState('finished');
+        toast({
+          title: "Using Placeholder Video",
+          description: "The AI model couldn't generate a video, so we're showing a placeholder.",
+        });
+      }
+    } catch (error) {
+      console.error('Video generation failed:', error);
+      clearInterval(interval);
+      toast({
+        variant: 'destructive',
+        title: 'Generation Failed',
+        description: 'Something went wrong while creating your video. Please try again.',
+      });
+      handleReset();
+    }
+  };
+
 
   const handleReset = useCallback(() => {
     setAppState('idle');
     setImageUri(null);
     setVideoUri(null);
     setProgress(0);
+    setDescription('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -182,6 +200,17 @@ export default function HomePage() {
               onChange={handleFileChange}
               className="hidden"
               accept="image/*"
+            />
+            <DescriptionDialog
+              open={appState === 'describing'}
+              onOpenChange={(isOpen) => {
+                if (!isOpen) {
+                  handleReset();
+                }
+              }}
+              description={description}
+              onDescriptionChange={setDescription}
+              onSubmit={handleGenerationStart}
             />
           </main>
         </div>
@@ -258,3 +287,50 @@ const FinishedView = ({ videoUri, onDownload, onReset }: { videoUri: string | nu
     </div>
   </div>
 );
+
+interface DescriptionDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  description: string;
+  onDescriptionChange: (description: string) => void;
+  onSubmit: () => void;
+}
+
+const DescriptionDialog: React.FC<DescriptionDialogProps> = ({
+  open,
+  onOpenChange,
+  description,
+  onDescriptionChange,
+  onSubmit,
+}) => {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Describe your vision</DialogTitle>
+          <DialogDescription>
+            Tell the AI what kind of animation you want. Be as descriptive as you like!
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid w-full gap-1.5">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              placeholder="e.g., 'Make the clouds move slowly from left to right, and make the water ripple gently.'"
+              value={description}
+              onChange={(e) => onDescriptionChange(e.target.value)}
+              className="min-h-[100px]"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button onClick={onSubmit}>
+            <Sparkles className="mr-2 h-4 w-4" />
+            Generate Video
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
