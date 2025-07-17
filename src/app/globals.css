@@ -39,7 +39,7 @@
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
   .dark {
-    --background: 180 10% 5%;
+    --background: 0 0% 0%;
     --foreground: 180 10% 90%;
     --card: 180 10% 8%;
     --card-foreground: 180 10% 90%;
@@ -63,7 +63,7 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --sidebar-background: 180 10% 5%;
+    --sidebar-background: 0 0% 0%;
     --sidebar-foreground: 180 5% 95%;
     --sidebar-primary: 174 70% 50%;
     --sidebar-primary-foreground: 174 100% 10%;
