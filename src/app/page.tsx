@@ -204,7 +204,7 @@ const IdleView = ({ onUploadClick }: { onUploadClick: () => void }) => (
               Upload a static image and our AI will generate a short, subtly animated video clip.
             </p>
           </div>
-          <Button size="lg" className="bg-gradient-to-r from-[#FF4081] to-[#FF5722] text-white font-bold shadow-lg hover:shadow-xl transition-shadow" onClick={onUploadClick}>
+          <Button size="lg" onClick={onUploadClick}>
             <UploadCloud className="mr-2 h-5 w-5" />
             Upload Image
           </Button>
@@ -247,7 +247,7 @@ const FinishedView = ({ videoUri, onDownload, onReset }: { videoUri: string | nu
       </CardContent>
     </Card>
     <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-      <Button size="lg" onClick={onDownload} className="w-full sm:w-auto bg-gradient-to-r from-[#FF4081] to-[#FF5722] text-white font-bold shadow-lg hover:shadow-xl transition-shadow">
+      <Button size="lg" onClick={onDownload} className="w-full sm:w-auto">
         <Download className="mr-2 h-5 w-5" />
         Download
       </Button>
