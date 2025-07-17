@@ -32,6 +32,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { generateVideoFromImage } from '@/ai/flows/generate-video-from-image';
+import { videoPreviewAndShare } from '@/ai/flows/video-preview-and-share';
 import {
   Dialog,
   DialogContent,
@@ -145,6 +146,29 @@ export default function HomePage() {
     document.body.removeChild(link);
   };
   
+  const handleShare = async () => {
+    if (!videoUri) return;
+
+    try {
+      const result = await videoPreviewAndShare({ videoDataUri: videoUri });
+      if (result.success) {
+        toast({
+          title: 'Shared Successfully!',
+          description: 'Your video has been shared (simulated).',
+        });
+      } else {
+        throw new Error('Sharing failed');
+      }
+    } catch (error) {
+      console.error('Sharing failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Sharing Failed',
+        description: 'Could not share your video at this time.',
+      });
+    }
+  };
+  
   return (
     <SidebarProvider>
       <Sidebar>
@@ -192,7 +216,7 @@ export default function HomePage() {
             <div className="mx-auto h-full max-w-4xl flex items-center justify-center">
               {appState === 'idle' && <IdleView onUploadClick={handleFileSelect} />}
               {appState === 'generating' && <GeneratingView progress={progress} />}
-              {appState === 'finished' && <FinishedView videoUri={videoUri} onDownload={handleDownload} onReset={handleReset} />}
+              {appState === 'finished' && <FinishedView videoUri={videoUri} onDownload={handleDownload} onShare={handleShare} onReset={handleReset} />}
             </div>
             <input
               type="file"
@@ -255,7 +279,7 @@ const GeneratingView = ({ progress }: { progress: number }) => (
   </div>
 );
 
-const FinishedView = ({ videoUri, onDownload, onReset }: { videoUri: string | null; onDownload: () => void; onReset: () => void }) => (
+const FinishedView = ({ videoUri, onDownload, onShare, onReset }: { videoUri: string | null; onDownload: () => void; onShare: () => void; onReset: () => void }) => (
   <div className="space-y-6 w-full">
     <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
       <h2 className="text-3xl font-bold font-headline">Your Video is Ready!</h2>
@@ -280,7 +304,7 @@ const FinishedView = ({ videoUri, onDownload, onReset }: { videoUri: string | nu
         <Download className="mr-2 h-5 w-5" />
         Download
       </Button>
-      <Button size="lg" variant="secondary" className="w-full sm:w-auto">
+      <Button size="lg" variant="secondary" onClick={onShare} className="w-full sm:w-auto">
         <Share2 className="mr-2 h-5 w-5" />
         Share
       </Button>
