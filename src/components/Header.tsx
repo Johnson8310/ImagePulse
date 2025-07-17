@@ -12,12 +12,18 @@ import { Button } from '@/components/ui/button';
 import { LifeBuoy, LogOut, Settings, User } from 'lucide-react';
 import Image from 'next/image';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { ImagePulseLogo } from './ImagePulseLogo';
 
 export function Header() {
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-card/80 px-4 backdrop-blur-sm md:px-6">
-      <SidebarTrigger className="md:hidden" />
-      <div />
+      <div className="flex items-center gap-2 md:hidden">
+        <SidebarTrigger />
+        <div className="group-data-[collapsible=icon]:hidden">
+          <ImagePulseLogo />
+        </div>
+      </div>
+      <div className="hidden md:block" />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-10 w-10 rounded-full">
