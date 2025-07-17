@@ -14,7 +14,8 @@ const GenerateVideoFromImageInputSchema = z.object({
   photoDataUri: z
     .string()
     .describe(
-      'A photo to animate, as a data URI that must include a MIME type and use Base64 encoding. Expected format: \'data:<mimetype>;base64,<encoded_data>\'.'    ),
+      "A photo to animate, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+    ),
   description: z.string().describe('A text description of the desired animation.'),
 });
 export type GenerateVideoFromImageInput = z.infer<typeof GenerateVideoFromImageInputSchema>;
@@ -28,49 +29,34 @@ export async function generateVideoFromImage(input: GenerateVideoFromImageInput)
   return generateVideoFromImageFlow(input);
 }
 
-const generateVideoFromImagePrompt = ai.definePrompt({
-  name: 'generateVideoFromImagePrompt',
-  input: {schema: GenerateVideoFromImageInputSchema},
-  output: {schema: GenerateVideoFromImageOutputSchema},
-  prompt: `You are a creative AI that generates short, subtly animated video clips from static images.
-
-  Given the following image and description, create a short video clip with subtle animation effects. Return the video as a data URI.
-
-  Image: {{media url=photoDataUri}}
-  Description: {{{description}}}
-
-  Ensure the video maintains the core essence of the original image while adding gentle motion to make it more engaging.
-  The video should not be longer than 10 seconds.
-  The video must be returned as a data URI.
-  `,
-});
-
 const generateVideoFromImageFlow = ai.defineFlow(
   {
     name: 'generateVideoFromImageFlow',
     inputSchema: GenerateVideoFromImageInputSchema,
     outputSchema: GenerateVideoFromImageOutputSchema,
   },
-  async input => {
-    // Implementation to generate a video from the image
-    // This placeholder code returns the original image as a base64 string.
-    // Replace this with actual video generation logic using AI models.
+  async (input) => {
+    // Note: Using an image generation model as a placeholder for video generation.
+    // When a video model is available, this should be updated.
+    const { media } = await ai.generate({
+      model: 'googleai/gemini-2.0-flash-preview-image-generation',
+      prompt: [
+        { media: { url: input.photoDataUri } },
+        {
+          text: `Create a single, subtly animated frame for a video based on this image. The animation should follow this description: "${input.description}". The output should look like a video still.`,
+        },
+      ],
+      config: {
+        responseModalities: ['IMAGE'],
+      },
+    });
 
-    //const {media} = await ai.generate({
-    //  model: 'googleai/gemini-2.0-flash-preview-image-generation',
-    //  prompt: [
-    //    {media: {url: input.photoDataUri}},
-    //    {text: 'generate a subtly animated video clip from this image'},
-    //  ],
-    //  config: {
-    //    responseModalities: ['TEXT', 'IMAGE'],
-    //  },
-    //});
-    //if (!media?.url) {
-    //  throw new Error('no media returned');
-    //}
+    if (!media?.url) {
+      throw new Error('Media generation failed or returned no URL.');
+    }
 
-    const {output} = await generateVideoFromImagePrompt(input);
-    return output!;
+    // Since we are getting an image back, we'll return it as the "video".
+    // On the frontend, we have a fallback to display a placeholder MP4 if the data URI isn't a video.
+    return { videoDataUri: media.url };
   }
 );
