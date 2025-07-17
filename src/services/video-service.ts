@@ -1,14 +1,7 @@
 'use server';
 
 import { db } from '@/lib/firebase/server';
-
-export interface Video {
-  id?: string;
-  userId: string;
-  videoUri: string;
-  description: string;
-  createdAt: Date;
-}
+import type { Video } from '@/models/video';
 
 const videosCollection = db.collection('videos');
 

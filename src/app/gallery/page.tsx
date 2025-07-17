@@ -27,7 +27,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { getVideosForUser, Video } from '@/services/video-service';
+import { getVideosForUser } from '@/services/video-service';
+import type { Video } from '@/models/video';
 
 export default function GalleryPage() {
   const pathname = usePathname();
