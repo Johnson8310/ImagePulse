@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   SidebarProvider,
   Sidebar,
@@ -54,6 +56,7 @@ export default function HomePage() {
   const [progress, setProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const pathname = usePathname();
 
   const handleFileSelect = () => {
     fileInputRef.current?.click();
@@ -179,16 +182,20 @@ export default function HomePage() {
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton isActive tooltip="Create">
-                <Clapperboard />
-                <span className="group-data-[collapsible=icon]:hidden">Create</span>
-              </SidebarMenuButton>
+              <Link href="/">
+                <SidebarMenuButton isActive={pathname === '/'} tooltip="Create">
+                  <Clapperboard />
+                  <span className="group-data-[collapsible=icon]:hidden">Create</span>
+                </SidebarMenuButton>
+              </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton tooltip="My Gallery">
-                <GalleryHorizontal />
-                <span className="group-data-[collapsible=icon]:hidden">My Gallery</span>
-              </SidebarMenuButton>
+              <Link href="/gallery">
+                <SidebarMenuButton isActive={pathname === '/gallery'} tooltip="My Gallery">
+                  <GalleryHorizontal />
+                  <span className="group-data-[collapsible=icon]:hidden">My Gallery</span>
+                </SidebarMenuButton>
+              </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton tooltip="Settings">
