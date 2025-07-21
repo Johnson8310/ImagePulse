@@ -111,7 +111,7 @@ export default function HomePage() {
         }
         return prev + 5;
       });
-    }, 200);
+    }, 800);
 
     try {
       const result = await generateVideoFromImage({ 
@@ -121,18 +121,11 @@ export default function HomePage() {
       });
       clearInterval(interval);
       setProgress(100);
-      if (result.videoDataUri && (result.videoDataUri.startsWith('data:video') || result.videoDataUri.startsWith('data:image'))) {
+      if (result.videoDataUri && result.videoDataUri.startsWith('data:video')) {
         setVideoUri(result.videoDataUri);
         setAppState('finished');
       } else {
-        // A tiny, valid mp4 file as a base64 string
-        const fallbackVideo = "data:video/mp4;base64,AAAAHGZ0eXBNNFYgAAACAGlzb21pc28yYXZjMQAAAAhmcmVlAAAAG21kYXQAAAGzABAHAAABthBgQG//+v34A";
-        setVideoUri(fallbackVideo);
-        setAppState('finished');
-        toast({
-          title: "Using Placeholder Video",
-          description: "The AI model couldn't generate a video, so we're showing a placeholder.",
-        });
+        throw new Error("The generated file was not a valid video.")
       }
     } catch (error) {
       console.error('Video generation failed:', error);
@@ -162,8 +155,7 @@ export default function HomePage() {
     if (!videoUri) return;
     const link = document.createElement('a');
     link.href = videoUri;
-    // The placeholder is an image, so we'll handle both cases.
-    const extension = videoUri.includes('data:video/mp4') ? 'mp4' : 'png';
+    const extension = 'mp4';
     link.download = `imagepulse-video.${extension}`;
     document.body.appendChild(link);
     link.click();

@@ -10,6 +10,10 @@
 import {ai} from '@/ai/genkit';
 import { createVideo, isFirestoreAvailable } from '@/services/video-service';
 import {z} from 'genkit';
+import { MediaPart } from 'genkit/cohere';
+import * as fs from 'fs';
+import { Readable } from 'stream';
+
 
 const GenerateVideoFromImageInputSchema = z.object({
   photoDataUri: z
@@ -38,32 +42,50 @@ const generateVideoFromImageFlow = ai.defineFlow(
     outputSchema: GenerateVideoFromImageOutputSchema,
   },
   async (input) => {
-    // Note: Using an image generation model as a placeholder for video generation.
-    // When a video model is available, this should be updated.
-    const { media } = await ai.generate({
-      model: 'googleai/gemini-2.0-flash-preview-image-generation',
-      prompt: [
-        { media: { url: input.photoDataUri } },
-        {
-          text: `Create a single, subtly animated frame for a video based on this image. The animation should follow this description: "${input.description}". The output should look like a video still.`,
+    let { operation } = await ai.generate({
+        model: 'googleai/veo-2.0-generate-001',
+        prompt: [
+            { media: { url: input.photoDataUri } },
+            {
+            text: `Create a subtly animated video based on this image. The animation should follow this description: "${input.description}".`,
+            },
+        ],
+        config: {
+            durationSeconds: 5,
+            aspectRatio: '16:9',
         },
-      ],
-      config: {
-        responseModalities: ['TEXT', 'IMAGE'],
-      },
     });
 
-    if (!media?.url) {
-      throw new Error('Media generation failed or returned no URL.');
+    if (!operation) {
+        throw new Error('Expected the model to return an operation');
+    }
+
+    // Wait until the operation completes.
+    while (!operation.done) {
+        operation = await ai.checkOperation(operation);
+        // Sleep for 5 seconds before checking again.
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+
+    if (operation.error) {
+        throw new Error('failed to generate video: ' + operation.error.message);
     }
     
+    const video = operation.output?.message?.content.find((p) => !!p.media);
+    if (!video || !video.media?.url) {
+        throw new Error('Failed to find the generated video');
+    }
+
+    // Convert the remote URL to a data URI
+    const videoDataUri = await convertUrlToDataUri(video.media.url);
+
     // Save the generated video to Firestore, but only if it's initialized
     const firestoreReady = await isFirestoreAvailable();
     if (firestoreReady) {
         try {
             await createVideo({
               userId: input.userId,
-              videoUri: media.url,
+              videoUri: videoDataUri,
               description: input.description,
               createdAt: new Date(),
             });
@@ -75,9 +97,22 @@ const generateVideoFromImageFlow = ai.defineFlow(
         console.warn('Firestore is not initialized. Skipping video save. Please check your .env credentials.');
     }
 
-
-    // Since we are getting an image back, we'll return it as the "video".
-    // On the frontend, we have a fallback to display a placeholder MP4 if the data URI isn't a video.
-    return { videoDataUri: media.url };
+    return { videoDataUri };
   }
 );
+
+
+async function convertUrlToDataUri(url: string): Promise<string> {
+    const fetch = (await import('node-fetch')).default;
+    // Add API key before fetching the video.
+    const response = await fetch(`${url}&key=${process.env.GEMINI_API_KEY}`);
+    
+    if (!response.ok) {
+        throw new Error(`Failed to fetch video from URL: ${url}. Status: ${response.statusText}`);
+    }
+
+    const videoBuffer = await response.buffer();
+    const contentType = response.headers.get('content-type') || 'video/mp4';
+    
+    return `data:${contentType};base64,${videoBuffer.toString('base64')}`;
+}
