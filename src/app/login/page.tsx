@@ -2,10 +2,14 @@
 
 import { ImagePulseLogo } from '@/components/ImagePulseLogo';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
 // Simple SVG for Google icon
 const GoogleIcon = () => (
@@ -15,8 +19,11 @@ const GoogleIcon = () => (
 );
 
 export default function LoginPage() {
-  const { user, signInWithGoogle, loading } = useAuth();
+  const { user, signInWithGoogle, signInWithEmailAndPassword, loading } = useAuth();
   const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
@@ -24,12 +31,30 @@ export default function LoginPage() {
     }
   }, [user, router]);
 
-  const handleSignIn = async () => {
+  const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
-    } catch (error) {
-      console.error('Failed to sign in:', error);
-      // You might want to show a toast message here
+      router.push('/');
+    } catch (error: any) {
+        toast({
+            title: 'Sign In Failed',
+            description: error.message || 'An unexpected error occurred.',
+            variant: 'destructive',
+          });
+    }
+  };
+
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await signInWithEmailAndPassword(email, password);
+      router.push('/');
+    } catch (error: any) {
+      toast({
+        title: 'Sign In Failed',
+        description: error.message || 'An unexpected error occurred.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -44,15 +69,37 @@ export default function LoginPage() {
           <CardDescription>Sign in to continue to ImagePulse</CardDescription>
         </CardHeader>
         <CardContent>
+            <form onSubmit={handleEmailSignIn} className="space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" type="email" placeholder="m@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? 'Signing In...' : 'Sign In'}
+                </Button>
+            </form>
+            <div className="my-4 flex items-center">
+                <div className="flex-grow border-t border-muted-foreground"></div>
+                <span className="mx-4 flex-shrink text-xs uppercase text-muted-foreground">Or</span>
+                <div className="flex-grow border-t border-muted-foreground"></div>
+            </div>
           <Button 
+            variant="outline"
             className="w-full" 
-            onClick={handleSignIn} 
+            onClick={handleGoogleSignIn} 
             disabled={loading}
           >
             <GoogleIcon />
             {loading ? 'Signing In...' : 'Sign in with Google'}
           </Button>
         </CardContent>
+        <CardFooter className="justify-center text-sm">
+            <p>Don't have an account? <Link href="/signup" className="font-semibold text-primary underline-offset-4 hover:underline">Sign up</Link></p>
+        </CardFooter>
       </Card>
     </div>
   );
