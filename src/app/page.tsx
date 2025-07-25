@@ -304,7 +304,6 @@ const GeneratingView = ({ progress }: { progress: number }) => (
 );
 
 const FinishedView = ({ contentUri, onDownload, onShare, onReset }: { contentUri: string | null; onDownload: () => void; onShare: () => void; onReset: () => void }) => {
-  const isVideo = contentUri?.startsWith('data:video');
   return (
     <div className="space-y-6 w-full">
       <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">

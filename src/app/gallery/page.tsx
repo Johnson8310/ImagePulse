@@ -70,17 +70,7 @@ export default function GalleryPage() {
   }, [user, authLoading]);
 
   const renderMedia = (item: Video) => {
-    const isVideo = item.videoUri.startsWith('data:video');
-    if (isVideo) {
-      return (
-        <video
-          src={item.videoUri}
-          controls
-          loop
-          className="aspect-video w-full"
-        />
-      );
-    }
+    // All content is now an image.
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={item.videoUri} alt={item.description} className="aspect-video w-full object-cover" />;
   };
