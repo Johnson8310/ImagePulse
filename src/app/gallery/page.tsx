@@ -33,7 +33,7 @@ import type { Video } from '@/models/video';
 export default function GalleryPage() {
   const pathname = usePathname();
   const { user, loading: authLoading } = useAuth();
-  const [videos, setVideos] = useState<Video[]>([]);
+  const [items, setItems] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [firestoreInitialized, setFirestoreInitialized] = useState(false);
 
@@ -45,27 +45,45 @@ export default function GalleryPage() {
       return;
     }
 
-    const checkFirestoreAndFetchVideos = async () => {
+    const checkFirestoreAndFetchItems = async () => {
       try {
         setLoading(true);
         const isAvailable = await isFirestoreAvailable();
         setFirestoreInitialized(isAvailable);
 
         if (isAvailable) {
-          const userVideos = await getVideosForUser(user.uid);
-          setVideos(userVideos);
+          // Note: getVideosForUser is fetching items from the 'videos' collection,
+          // which now contains image URIs.
+          const userItems = await getVideosForUser(user.uid);
+          setItems(userItems);
         } else {
             console.warn("Firestore is not initialized. Gallery will be empty.")
         }
       } catch (error) {
-        console.error('Failed to fetch videos:', error);
+        console.error('Failed to fetch items:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    checkFirestoreAndFetchVideos();
+    checkFirestoreAndFetchItems();
   }, [user, authLoading]);
+
+  const renderMedia = (item: Video) => {
+    const isVideo = item.videoUri.startsWith('data:video');
+    if (isVideo) {
+      return (
+        <video
+          src={item.videoUri}
+          controls
+          loop
+          className="aspect-video w-full"
+        />
+      );
+    }
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={item.videoUri} alt={item.description} className="aspect-video w-full object-cover" />;
+  };
 
   return (
     <SidebarProvider>
@@ -132,7 +150,7 @@ export default function GalleryPage() {
                   My Gallery
                 </h1>
                 <Link href="/">
-                  <Button>Create New Video</Button>
+                  <Button>Create New Image</Button>
                 </Link>
               </div>
 
@@ -140,19 +158,14 @@ export default function GalleryPage() {
                  <div className="flex justify-center items-center py-20">
                     <Loader className="h-12 w-12 animate-spin text-primary" />
                  </div>
-              ) : videos.length > 0 && firestoreInitialized ? (
+              ) : items.length > 0 && firestoreInitialized ? (
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {videos.map((video) => (
-                    <Card key={video.id} className="overflow-hidden shadow-lg group">
+                  {items.map((item) => (
+                    <Card key={item.id} className="overflow-hidden shadow-lg group">
                       <CardContent className="p-0 relative">
-                        <video
-                          src={video.videoUri}
-                          controls
-                          loop
-                          className="aspect-video w-full"
-                        />
+                        {renderMedia(item)}
                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <p className="text-white text-sm truncate">{video.description}</p>
+                          <p className="text-white text-sm truncate">{item.description}</p>
                         </div>
                       </CardContent>
                     </Card>
@@ -166,16 +179,16 @@ export default function GalleryPage() {
                   </h2>
                    {!firestoreInitialized && (
                      <p className="mt-2 text-muted-foreground max-w-md">
-                        Your gallery feature is not available. Please ensure your Firebase server credentials are correctly configured in the `.env` file to see your saved videos.
+                        Your gallery feature is not available. Please ensure your Firebase server credentials are correctly configured in the `.env` file to see your saved items.
                      </p>
                    )}
                    {firestoreInitialized && (
                      <p className="mt-2 text-muted-foreground">
-                       Create a video to see it here.
+                       Create an image to see it here.
                      </p>
                    )}
                   <Link href="/" className="mt-6">
-                    <Button>Generate Your First Video</Button>
+                    <Button>Generate Your First Image</Button>
                   </Link>
                 </div>
               )}
