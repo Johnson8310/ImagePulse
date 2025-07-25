@@ -55,7 +55,7 @@ type AppState = 'idle' | 'describing' | 'generating' | 'finished';
 export default function HomePage() {
   const [appState, setAppState] = useState<AppState>('idle');
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [generatedVideoUri, setGeneratedVideoUri] = useState<string | null>(null);
+  const [generatedContentUri, setGeneratedContentUri] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [progress, setProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -69,7 +69,7 @@ export default function HomePage() {
     if (!user && !authLoading) {
       toast({
         title: 'Authentication Required',
-        description: 'Please log in to create a video.',
+        description: 'Please log in to create an image.',
         variant: 'destructive',
       });
       router.push('/login');
@@ -112,7 +112,7 @@ export default function HomePage() {
         }
         return prev + 5;
       });
-    }, 800);
+    }, 500);
 
     try {
       const result = await generateVideoFromImage({ 
@@ -122,19 +122,20 @@ export default function HomePage() {
       });
       clearInterval(interval);
       setProgress(100);
-      if (result.videoDataUri && result.videoDataUri.startsWith('data:video')) {
-        setGeneratedVideoUri(result.videoDataUri);
+      // The flow now returns an image URI in the `videoDataUri` field.
+      if (result.videoDataUri) {
+        setGeneratedContentUri(result.videoDataUri);
         setAppState('finished');
       } else {
-        throw new Error("The generated file was not a valid video.")
+        throw new Error("The generated file was not valid.")
       }
     } catch (error) {
-      console.error('Video generation failed:', error);
+      console.error('Image generation failed:', error);
       clearInterval(interval);
       toast({
         variant: 'destructive',
         title: 'Generation Failed',
-        description: 'Something went wrong while creating your video. This can happen if the API key is missing or invalid. Please check your setup and try again.',
+        description: 'Something went wrong while creating your image. This can happen if the API key is missing, invalid, or billing is required for the requested model. Please check your setup and try again.',
       });
       handleReset();
     }
@@ -144,7 +145,7 @@ export default function HomePage() {
   const handleReset = useCallback(() => {
     setAppState('idle');
     setImageUri(null);
-    setGeneratedVideoUri(null);
+    setGeneratedContentUri(null);
     setProgress(0);
     setDescription('');
     if (fileInputRef.current) {
@@ -153,12 +154,11 @@ export default function HomePage() {
   }, []);
 
   const handleDownload = () => {
-    if (!generatedVideoUri) return;
+    if (!generatedContentUri) return;
     const link = document.createElement('a');
-    link.href = generatedVideoUri;
-    // Extract file extension from mime type
-    const mimeType = generatedVideoUri.split(';')[0].split(':')[1];
-    const extension = mimeType.split('/')[1] || 'mp4';
+    link.href = generatedContentUri;
+    const mimeType = generatedContentUri.split(';')[0].split(':')[1];
+    const extension = mimeType.split('/')[1] || 'png';
     link.download = `imagepulse-generated.${extension}`;
     document.body.appendChild(link);
     link.click();
@@ -166,14 +166,15 @@ export default function HomePage() {
   };
   
   const handleShare = async () => {
-    if (!generatedVideoUri) return;
+    if (!generatedContentUri) return;
 
     try {
-      const result = await videoPreviewAndShare({ videoDataUri: generatedVideoUri });
+      // Using videoPreviewAndShare for consistency, it will just log the data URI.
+      const result = await videoPreviewAndShare({ videoDataUri: generatedContentUri });
       if (result.success) {
         toast({
           title: 'Shared Successfully!',
-          description: 'Your video has been shared (simulated).',
+          description: 'Your image has been shared (simulated).',
         });
       } else {
         throw new Error('Sharing failed');
@@ -183,7 +184,7 @@ export default function HomePage() {
       toast({
         variant: 'destructive',
         title: 'Sharing Failed',
-        description: 'Could not share your video at this time.',
+        description: 'Could not share your image at this time.',
       });
     }
   };
@@ -239,7 +240,7 @@ export default function HomePage() {
             <div className="mx-auto h-full max-w-4xl flex items-center justify-center">
               {appState === 'idle' && <IdleView onUploadClick={handleFileSelect} />}
               {appState === 'generating' && <GeneratingView progress={progress} />}
-              {appState === 'finished' && <FinishedView videoUri={generatedVideoUri} onDownload={handleDownload} onShare={handleShare} onReset={handleReset} />}
+              {appState === 'finished' && <FinishedView contentUri={generatedContentUri} onDownload={handleDownload} onShare={handleShare} onReset={handleReset} />}
             </div>
             <input
               type="file"
@@ -272,12 +273,12 @@ const IdleView = ({ onUploadClick }: { onUploadClick: () => void }) => (
       <CardContent className="p-8">
         <div className="flex flex-col items-center justify-center space-y-6">
           <div className="rounded-full border-8 border-secondary p-6">
-            <Sparkles className="h-16 w-16 text-primary" strokeWidth={1.5} />
+            <ImageIcon className="h-16 w-16 text-primary" strokeWidth={1.5} />
           </div>
           <div className="space-y-2">
-            <h2 className="text-3xl font-bold font-headline">Bring Your Images to Life</h2>
+            <h2 className="text-3xl font-bold font-headline">Reimagine Your Images</h2>
             <p className="text-muted-foreground">
-              Upload an image and describe a new vision. Our AI will generate an animated video for you.
+              Upload a picture and describe a new vision. Our AI will generate a new image for you.
             </p>
           </div>
           <Button size="lg" onClick={onUploadClick}>
@@ -302,38 +303,42 @@ const GeneratingView = ({ progress }: { progress: number }) => (
   </div>
 );
 
-const FinishedView = ({ videoUri, onDownload, onShare, onReset }: { videoUri: string | null; onDownload: () => void; onShare: () => void; onReset: () => void }) => (
-  <div className="space-y-6 w-full">
-    <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-      <h2 className="text-3xl font-bold font-headline">Your Video is Ready!</h2>
-      <Button variant="outline" onClick={onReset}>
-        <X className="mr-2 h-4 w-4" />
-        Start Over
-      </Button>
+const FinishedView = ({ contentUri, onDownload, onShare, onReset }: { contentUri: string | null; onDownload: () => void; onShare: () => void; onReset: () => void }) => {
+  const isVideo = contentUri?.startsWith('data:video');
+  return (
+    <div className="space-y-6 w-full">
+      <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+        <h2 className="text-3xl font-bold font-headline">Your Creation is Ready!</h2>
+        <Button variant="outline" onClick={onReset}>
+          <X className="mr-2 h-4 w-4" />
+          Start Over
+        </Button>
+      </div>
+      <Card className="overflow-hidden shadow-lg">
+        <CardContent className="p-0">
+          {contentUri ? (
+             // eslint-disable-next-line @next/next/no-img-element
+            <img src={contentUri} alt="Generated content" className="aspect-video w-full" />
+          ) : (
+            <div className="flex aspect-video w-full items-center justify-center bg-muted">
+              <p>Could not load content.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+        <Button size="lg" onClick={onDownload} className="w-full sm:w-auto">
+          <Download className="mr-2 h-5 w-5" />
+          Download
+        </Button>
+        <Button size="lg" variant="secondary" onClick={onShare} className="w-full sm:w-auto">
+          <Share2 className="mr-2 h-5 w-5" />
+          Share
+        </Button>
+      </div>
     </div>
-    <Card className="overflow-hidden shadow-lg">
-      <CardContent className="p-0">
-        {videoUri ? (
-            <video src={videoUri} controls loop autoPlay className="aspect-video w-full" />
-        ) : (
-          <div className="flex aspect-video w-full items-center justify-center bg-muted">
-            <p>Could not load video.</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-    <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-      <Button size="lg" onClick={onDownload} className="w-full sm:w-auto">
-        <Download className="mr-2 h-5 w-5" />
-        Download
-      </Button>
-      <Button size="lg" variant="secondary" onClick={onShare} className="w-full sm:w-auto">
-        <Share2 className="mr-2 h-5 w-5" />
-        Share
-      </Button>
-    </div>
-  </div>
-);
+  );
+};
 
 interface DescriptionDialogProps {
   open: boolean;
@@ -356,7 +361,7 @@ const DescriptionDialog: React.FC<DescriptionDialogProps> = ({
         <DialogHeader>
           <DialogTitle>Describe your vision</DialogTitle>
           <DialogDescription>
-            Tell the AI what kind of video you want to create. Be as descriptive as you like!
+            Tell the AI what kind of image you want to create from your upload. Be as descriptive as you like!
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -364,7 +369,7 @@ const DescriptionDialog: React.FC<DescriptionDialogProps> = ({
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              placeholder="e.g., 'A vibrant watercolor painting of the scene, with soft edges and a dreamy feel, coming to life.'"
+              placeholder="e.g., 'A vibrant watercolor painting of the scene, with soft edges and a dreamy feel.'"
               value={description}
               onChange={(e) => onDescriptionChange(e.target.value)}
               className="min-h-[100px]"
@@ -374,7 +379,7 @@ const DescriptionDialog: React.FC<DescriptionDialogProps> = ({
         <DialogFooter>
           <Button onClick={onSubmit}>
             <Sparkles className="mr-2 h-4 w-4" />
-            Generate Video
+            Generate Image
           </Button>
         </DialogFooter>
       </DialogContent>
